@@ -14,15 +14,17 @@ from pathlib import PurePosixPath
 
 from bs4 import BeautifulSoup as jquery
 
-from jag import htservice
-from jag.mimes import BASE_MIMES
-from jag.mimes import BASE_MIMES_SIGNED
+from .jag import htservice
+from .jag.mimes import BASE_MIMES
+from .jag.mimes import BASE_MIMES_SIGNED
 
-from arc_mischief import (
-	list_archive_text,
+from .arc_mischief import (
+	# list_archive_text,
 	# list_archive_xml,
 	read_from_archive,
-	view_archive_html,
+	# view_archive_html,
+
+	ArchiveHTML,
 )
 
 
@@ -36,7 +38,7 @@ USE_SENDFILE = hasattr(os, 'sendfile')
 
 STATIC = Path(__file__).parent / 'static'
 
-HTTP_404 = (Path(__file__).parent / 'static' / '404.html').read_bytes()
+HTTP_404 = (STATIC / '404.html').read_bytes()
 
 DL_REDIRECT = ''
 
@@ -96,87 +98,6 @@ def sizeof_fmt(num, suffix='B'):
 			return (f'{num:3.1f}', f'{unit}{suffix}')
 		num /= 1024.0
 	return (f'{num:.1f}', 'Yi')
-
-
-def _list_dir(tgt_dir, root_dir, root_symbolic_name='EZShare'):
-	html_doc = jquery(
-		(STATIC / 'dir_list_template.html').read_bytes(),
-		'html.parser'
-	)
-
-	item_list = sorted(
-		[e for e in tgt_dir.glob('*')],
-		key=lambda i: int(i.is_file())
-	)
-
-	item_tplate = (STATIC / 'list_item_template.html').read_bytes()
-
-	display_path = tgt_dir.relative_to(root_dir).as_posix()
-	if display_path == '.':
-		html_doc.select_one('body > h1').string = f'EZShare/'
-	else:
-		html_doc.select_one('body > h1').string = f'EZShare/{display_path}/'
-
-	# todo: security?
-	item_path = '/' + str(tgt_dir.relative_to(root_dir).parent).strip()
-	if root_symbolic_name:
-		item_path = ''.join([
-			'/',
-			root_symbolic_name.strip(' /'),
-			'/',
-			str(tgt_dir.relative_to(root_dir).parent).strip(),
-		])
-
-	tag = jquery(item_tplate, 'html.parser')
-
-	tag.select_one('.prefix_icon.dl_item')['go_up'] = True
-	tag.select_one('.item_href')['href'] = item_path
-	tag.select_one('.item_href').string = '../'
-	tag.select_one('.item_actions .dl_item')['href'] = None
-
-	tag.select_one('.item_actions .item_type_icon')['go_up'] = True
-
-	html_doc.body.ul.append(tag)
-
-
-	for item in item_list:
-		# TODO: WHAT THE FUCK IS WORNG WITH HTML TODAY???
-		# WHY DOES IT ALWAYS USE ABSOLUTE PATHS ???!!!!
-		# FUCK YOUUUUUUUUUUUUU
-		item_path = '/' + str(item.relative_to(root_dir)).strip()
-		if root_symbolic_name:
-			item_path = ''.join([
-				'/',
-				root_symbolic_name.strip(' /'),
-				'/',
-				str(item.relative_to(root_dir)).strip(),
-			])
-			# print('bro?', root_symbolic_name, item_path)
-
-		tag = jquery(item_tplate, 'html.parser')
-
-		tag.select_one('.item_href')['href'] = item_path
-		tag.select_one('.item_href').string = item.name + ('/' * item.is_dir())
-		tag.select_one('.item_actions .dl_item')['href'] = item_path + '?dl=1'
-
-		itype_attr = 'folder' if item.is_dir() else 'file'
-		tag.select_one('.item_actions .item_type_icon')[itype_attr] = True
-
-		tag.select_one('.item_info.mod_date').string = (
-			# sizeof_fmt(item.stat().st_size).ljust(20, ' ')
-			# + '    |    ' + 
-			datetime.fromtimestamp(item.stat().st_mtime)
-			.strftime('%Y-%m-%d %H:%M:%S')
-		)
-
-		if item.is_file():
-			fsize = sizeof_fmt(item.stat().st_size)
-			tag.select_one('.item_info.fsize [num]').string = fsize[0]
-			tag.select_one('.item_info.fsize [txt]').string = fsize[1]
-
-		html_doc.body.ul.append(tag)
-
-	return html_doc.prettify().encode()
 
 
 def list_dir(tgt_dir, root_dir, root_symbolic_name='EZShare'):
@@ -361,8 +282,8 @@ class EZSData:
 
 class SKTChunkPipe(BytesIO):
 	def __init__(self, send_func):
-		self.send_func = send_func
 		super().__init__()
+		self.send_func = send_func
 
 	def write(self, data):
 		# print('Writing...', len(data))
@@ -588,7 +509,7 @@ class PreviewArchive:
 			(STATIC / 'arc_list_template.html').read_bytes()
 			.replace(
 				b'%archive_xml%',
-				view_archive_html(fpath).encode()
+				str(ArchiveHTML(fpath)).encode()
 			),
 			# 'text/plain; charset=utf-8',
 			# 'application/xml; charset=utf-8',
@@ -775,8 +696,7 @@ class EZSRedirectFromLegacy:
 
 
 class EZShare:
-	def __init__(
-		self,
+	def __init__(self,
 		tgt_port,
 		tgt_root_path,
 		extra_mimes=None
