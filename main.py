@@ -14,9 +14,9 @@ from pathlib import PurePosixPath
 
 from bs4 import BeautifulSoup as jquery
 
-from http_service import htservice
-from http_service.mimes import BASE_MIMES
-from http_service.mimes import BASE_MIMES_SIGNED
+from jag import htservice
+from jag.mimes import BASE_MIMES
+from jag.mimes import BASE_MIMES_SIGNED
 
 
 
