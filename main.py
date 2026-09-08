@@ -18,6 +18,14 @@ from jag import htservice
 from jag.mimes import BASE_MIMES
 from jag.mimes import BASE_MIMES_SIGNED
 
+from arc_mischief import (
+	list_archive_text,
+	# list_archive_xml,
+	read_from_archive,
+	view_archive_html,
+)
+
+
 
 
 # ==============================
@@ -55,6 +63,8 @@ SIZE_UNITS_PPRINT = (
 # 
 BASE_MIMES['vmix'] = 'application/xml'
 BASE_MIMES_SIGNED['.vmix'] = 'application/xml'
+
+
 
 
 
@@ -323,6 +333,9 @@ def parse_range_header(range_header):
 
 
 
+
+
+
 # ==============================
 #         UTIL CLASSES
 # ==============================
@@ -372,11 +385,13 @@ class SKTChunkPipe(BytesIO):
 
 
 
+
+
 # ==============================
 #       PREVIEW CLASSES
 # ==============================
 
-class PreviewVideo:
+class PreviewAudioVideo:
 	MAX_READ_SIZE = (1024**2) * 4
 
 	EXT = (
@@ -385,6 +400,10 @@ class PreviewVideo:
 		'.m4v',
 		'.ogv',
 		'.mov',
+		'.mp3',
+		'.wav',
+		'.ogg',
+		'.m4a',
 	)
 
 	def serve_partial_video(self):
@@ -557,6 +576,28 @@ class PreviewZIP:
 
 
 
+class PreviewArchive:
+	EXT = (
+		'.zip',
+		'.7z',
+		'.tar',
+	)
+
+	def run(self, htrequest, fpath):
+		htrequest.flush_bytes(
+			(STATIC / 'arc_list_template.html').read_bytes()
+			.replace(
+				b'%archive_xml%',
+				view_archive_html(fpath).encode()
+			),
+			# 'text/plain; charset=utf-8',
+			# 'application/xml; charset=utf-8',
+			'text/html',
+		)
+
+
+
+
 # ==============================
 #        SERVICE CLASSES
 # ==============================
@@ -576,10 +617,11 @@ class EZSMain:
 	route = '/EZShare*>'
 
 	PREVIEW_SERVERS = (
-		PreviewVideo,
+		PreviewAudioVideo,
 		PreviewImage,
 		PreviewGTZIP,
-		PreviewZIP,
+		# PreviewZIP,
+		PreviewArchive,
 	)
 
 	def __init__(self, htrequest):
@@ -602,12 +644,29 @@ class EZSMain:
 
 		need_dl = htrequest.query_params.get('dl') == '1'
 		need_preview = htrequest.query_params.get('prv') == '1'
+		arc_ext = htrequest.query_params.get('arc_ext')
+
 		is_dir = tgt_path.is_dir()
 		path_suffix = tgt_path.suffix.lower()
 
 		htrequest.additive_headers['Cache-Control'] = (
 			'no-store'
 		)
+
+		if arc_ext:
+			htrequest.send_headers_only({
+				'Transfer-Encoding': 'chunked',
+				'Content-Type':      'application/octet-stream',
+				'Content-Disposition': f'''attachment; filename="{Path(arc_ext).name}"'''
+			})
+			chunk_pump = SKTChunkPipe(htrequest.sendall)
+			read_from_archive(
+				str(tgt_path),
+				arc_ext,
+				chunk_pump.write,
+			)
+			htrequest.sendall(b'0\r\n\r\n')
+			return
 
 		# Streaming dirs as archives
 		if is_dir and need_dl:

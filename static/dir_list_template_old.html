@@ -197,6 +197,28 @@
 			pointer-events: none;
 		}
 
+		#rustdesk_link{
+			position: fixed;
+			right: 20px;
+			bottom: 20px;
+			width: 80px;
+			height: 80px;
+			background: url(/cdn/static/assets/rustdesk_icon.svg), rgb(0 0 0);
+			background-position: center;
+			background-size: 78%;
+			background-repeat: no-repeat;
+			border-radius: 14px;
+			outline: 2px solid rgba(255, 255, 255, 0.2);
+		}
+
+		#rustdesk_link:hover{
+			outline: 2px solid rgba(255, 255, 255, 1);
+		}
+
+		#rustdesk_link:active{
+			outline: 2px solid lime;
+		}
+
 	</style>
 
 	<body>
@@ -211,6 +233,8 @@
 			</div>
 			<div id="sort_hint"></div>
 		</div>
+
+		<a href="https://github.com/rustdesk/rustdesk/releases" id="rustdesk_link"></a>
 	</body>
 
 	<script type="text/javascript">
