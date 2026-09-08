@@ -1,0 +1,8 @@
+
+--- MANDATORY ---
+pip install beautifulsoup4
+
+
+--- OPTIONAL ---
+pip install py7zr
+
