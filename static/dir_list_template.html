@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+	<head>
+		<title>MGE Directory Listing</title>
+		<link rel="shortcut icon" href="/cdn/static/assets/sniper.jpg" type="image/x-icon">
+		<meta charset="UTF-8">
+	</head>
+
+	<style type="text/css">
+		*{
+			color: #E2E2E2;
+			font-family: monospace;
+		}
+		html{
+			/*background: #1F1F23;*/
+			background: #19191C;
+		}
+		ul li:hover{
+			background: rgba(255, 255, 255, 0.08);
+		}
+		ul li {
+			list-style: none;
+			position: relative;
+			padding-left: 4px;
+		}
+		ul li::before {
+			content: '•';
+			position: absolute;
+			left: -12px;
+			top: 50%;
+			transform: translateY(-50%);
+			pointer-events: none;
+		}
+		ul li item-data{
+			font-size: 19px;
+			/*font-weight: bold;*/
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+		}
+
+		ul li item-data .item_href{
+			/*height: fill-available;*/
+			height: 30px;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			width: 50vw;
+			max-width: 700px;
+			min-width: 400px;
+			/*padding: 2px 0px 2px 0px;*/
+			/*text-decoration: none;*/
+			text-decoration-color: rgba(255, 255, 255, 0.5);
+			/*font-weight: 400;*/
+			padding-left: 10px;
+		}
+		ul li item-data .item_href:visited{
+			color: #C2B0F5;
+		}
+		ul li item-data .item_href:hover{
+			/*color: #A8DDFF;*/
+			/*text-decoration-color: #A8DDFF;*/
+			/*color: white;*/
+			color: #00FFAE;
+			/*font-weight: bold;*/
+		}
+
+		ul li item-data .item_info{
+			color: #A6A6A6;
+			white-space: nowrap;
+		}
+
+		ul li item-data .item_info *{
+			color: #A6A6A6;
+		}
+
+		ul li item-data .item_info.fsize [num]{
+			display: inline-block;
+			width: 60px;
+		}
+
+		ul li item-data .item_info.fsize [txt]{
+			display: inline-block;
+			width: 60px;
+		}
+
+		ul li item-data .item_href:active{
+			color: lime;
+			text-decoration-color: lime;
+			background: #68f2851f;
+			font-weight: bold;
+		}
+
+		ul li .item_actions{
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+		}
+
+		ul li .prefix_icon{
+			display: flex;
+			height: 30px;
+			width:  30px;
+			/*background: red;*/
+		}
+
+		ul li .prefix_icon.dl_item:not([go_up]){
+			background: url('/cdn/static/assets/dl_icon.svg');
+			background-position: center;
+			background-repeat: no-repeat;
+			background-size: contain;
+			opacity: 0.5;
+			/*width: 40px;*/
+		}
+
+		ul li .prefix_icon.dl_item:not([go_up]):hover{
+			opacity: 1;
+		}
+
+		ul li .prefix_icon.dl_item:not([go_up]):active{
+			background-color: #38E538;
+		}
+
+		ul li .item_type_icon[file]{
+			height: 20px;
+			background: url('/cdn/static/assets/file_icon.svg');
+			background-position: center;
+			background-repeat: no-repeat;
+			background-size: contain;
+			opacity: 0.4;
+		}
+		ul li .item_type_icon[folder]{
+			height: 20px;
+			background: url('/cdn/static/assets/dir_icon.svg');
+			background-position: center;
+			background-repeat: no-repeat;
+			background-size: contain;
+			opacity: 0.6;
+		}
+
+		body[large_names] .item_href{
+			width: 55vw !important;
+			max-width: 1000px !important;
+		}
+
+		#sorting{
+			display: flex;
+			flex-direction: row;
+			position: fixed;
+			right: 0px;
+			top: 0px;
+			margin: 20px 40px 40px 40px;
+			user-select: none;
+		}
+
+		#sorting_methods{
+			display: flex;
+			background: #0f0f11;
+			border-radius: 5px;
+			overflow: hidden;
+			/*outline: 1px solid rgba(255, 255, 255, 0.2);*/
+			outline: 1px solid rgb(80, 80, 80);
+			padding: 0px;
+			margin: 0px;
+			z-index: 69;
+		}
+
+		#sorting img{
+			object-fit: contain;
+			object-position: center;
+			width: 25px;
+			height: 25px;
+			padding: 7px;
+		}
+
+		#sorting img:hover{
+			background: rgb(50, 50, 50);
+		}
+
+		#sorting img:active{
+			background: #394E71;
+		}
+
+		#sorting img:not(:first-child){
+			/*margin-left: 10px;*/
+		}
+
+		#sort_hint{
+			position: absolute;
+			top: 0px;
+			display: none;
+			background: #0f0f11;
+			padding: 50px 0px 5px 5px;
+			width: -webkit-fill-available;
+			border-radius: 5px;
+			outline: 1px solid rgba(255, 255, 255, 0.2);
+			pointer-events: none;
+		}
+
+		#rustdesk_link{
+			position: fixed;
+			right: 20px;
+			bottom: 20px;
+			width: 80px;
+			height: 80px;
+			background: url(/cdn/static/assets/rustdesk_icon.svg), rgb(0 0 0);
+			background-position: center;
+			background-size: 78%;
+			background-repeat: no-repeat;
+			border-radius: 14px;
+			outline: 2px solid rgba(255, 255, 255, 0.2);
+		}
+
+		#rustdesk_link:hover{
+			outline: 2px solid rgba(255, 255, 255, 1);
+		}
+
+		#rustdesk_link:active{
+			outline: 2px solid lime;
+		}
+
+	</style>
+
+	<body>
+		<h1></h1>
+		<ul id="listing_main"></ul>
+		<div id="sorting">
+			<div id="sorting_methods">
+				<img draggable="false" sort_hint="Name" onclick="sortByName(event)" src="/cdn/static/assets/sortalpha_icon.svg">
+				<img draggable="false" sort_hint="Modification Time" onclick="sortByModTime(event)" src="/cdn/static/assets/sorttime_icon.svg">
+				<img draggable="false" sort_hint="Size" onclick="sortBySize(event)" src="/cdn/static/assets/sortsize_icon.svg">
+				<img draggable="false" sort_hint="Extension" onclick="sortByExtension(event)" src="/cdn/static/assets/sortbyext_icon.svg">
+			</div>
+			<div id="sort_hint"></div>
+		</div>
+
+		<a href="https://github.com/rustdesk/rustdesk/releases" id="rustdesk_link"></a>
+	</body>
+
+	<script type="text/javascript">
+		const listingPoolDOM = document.querySelector('#listing_main');
+		const listedFilesDOMArray = [...document.querySelectorAll('[isfile="1"]')];
+		const listedDirsDOMArray = [...document.querySelectorAll('[isfile="0"]')];
+		const sortHintDOM = document.querySelector('#sort_hint')
+
+		for (const item_link of document.querySelectorAll('item-data .item_href')){
+			if (item_link.textContent.trim().length >= 64){
+				document.body.setAttribute('large_names', true);
+				break
+			}
+		}
+
+		const sortListedItems = function(params){
+			if (params['dirs']){
+				listedDirsDOMArray.sort(params.sortingFunction);
+			}
+
+			if (params['files']){
+				listedFilesDOMArray.sort(params.sortingFunction);
+			}
+
+			const orderDescending = parseInt(
+				params.buttonDOM.getAttribute('sort_order') || 0
+			)
+			params.buttonDOM.setAttribute('sort_order', !orderDescending * 1);
+
+			let ordered = null;
+
+			if (orderDescending){
+				ordered = [...listedDirsDOMArray, ...listedFilesDOMArray];
+			}else{
+				ordered = [
+					// ...(params['dirs']  ? [...listedDirsDOMArray].reverse()  : listedDirsDOMArray  ),
+					// ...(params['files'] ? [...listedFilesDOMArray].reverse() : listedFilesDOMArray ),
+
+					...(params['dirs']  ? [...listedDirsDOMArray].reverse()  : [] ),
+					...(params['files'] ? [...listedFilesDOMArray].reverse() : [] ),
+				];
+			}
+
+			for (const itemDOM of ordered){
+				listingPoolDOM.append(itemDOM);
+			}
+		}
+
+		const sortByModTime = function(evt){
+			sortListedItems({
+				'dirs': true,
+				'files': true,
+				'buttonDOM': evt.target,
+				'sortingFunction': function(a, b){
+					return parseInt(a.getAttribute('mtime')) - parseInt(b.getAttribute('mtime'))
+				}
+			})
+		}
+
+		const sortByName = function(evt){
+			sortListedItems({
+				'dirs': true,
+				'files': true,
+				'buttonDOM': evt.target,
+				'sortingFunction': function(a, b){
+					return a.querySelector('.item_href').textContent.localeCompare(
+						b.querySelector('.item_href').textContent
+					)
+				}
+			})
+		}
+
+		const sortBySize = function(evt){
+			sortListedItems({
+				'dirs': false,
+				'files': true,
+				'buttonDOM': evt.target,
+				'sortingFunction': function(a, b){
+					return parseInt(a.getAttribute('fsize')) - parseInt(b.getAttribute('fsize'))
+				}
+			})
+		}
+
+		const sortByExtension = function(evt){
+			const getExt = (DOM) => {
+				const name = DOM.querySelector('.item_href').textContent;
+
+				const i = name.lastIndexOf('.');
+				return i === -1 ? '' : name.slice(i + 1).toLowerCase();
+			};
+
+			sortListedItems({
+				'dirs':  false,
+				'files': true,
+				'buttonDOM': evt.target,
+				'sortingFunction': function(a, b){
+					return getExt(a).localeCompare(getExt(b))
+				}
+			})
+		}
+
+		document.addEventListener('mouseover', function(evt){
+			const tgtDOM = evt.target.closest('[sort_hint]');
+			if (tgtDOM){
+				sortHintDOM.textContent = tgtDOM.getAttribute('sort_hint');
+				sortHintDOM.style.display = 'flex';
+			}else{
+				sortHintDOM.style.display = 'none';
+			}
+		})
+	</script>
+
+</html>
