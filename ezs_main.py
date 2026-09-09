@@ -21,10 +21,11 @@ from .jag.mimes import BASE_MIMES_SIGNED
 from .arc_mischief import (
 	# list_archive_text,
 	# list_archive_xml,
-	read_from_archive,
+	# read_from_archive,
 	# view_archive_html,
 
 	ArchiveHTML,
+	ArchiveExtractor,
 )
 
 
@@ -581,8 +582,7 @@ class EZSMain:
 				'Content-Disposition': f'''attachment; filename="{Path(arc_ext).name}"'''
 			})
 			chunk_pump = SKTChunkPipe(htrequest.sendall)
-			read_from_archive(
-				str(tgt_path),
+			ArchiveExtractor(str(tgt_path)).extract(
 				arc_ext,
 				chunk_pump.write,
 			)
