@@ -1,10 +1,10 @@
 import sys
 import os
-import struct
 import time
 import tarfile
 import zipfile
 import shutil
+import argparse
 
 from pathlib import Path
 from io import BytesIO
@@ -19,11 +19,6 @@ from .jag.mimes import BASE_MIMES
 from .jag.mimes import BASE_MIMES_SIGNED
 
 from .arc_mischief import (
-	# list_archive_text,
-	# list_archive_xml,
-	# read_from_archive,
-	# view_archive_html,
-
 	ArchiveHTML,
 	ArchiveExtractor,
 )
@@ -287,7 +282,6 @@ class SKTChunkPipe(BytesIO):
 		self.send_func = send_func
 
 	def write(self, data):
-		# print('Writing...', len(data))
 		# Send data over the socket
 		self.send_func(
 			f"""{hex(len(data)).lstrip('0x')}\r\n""".encode()
@@ -436,68 +430,6 @@ class PreviewGTZIP:
 
 
 
-class PreviewZIP:
-	EXT = (
-		'.zip',
-	)
-
-	@staticmethod
-	def build_zip_tree(zip_path):
-		tree = {}
-
-		with zipfile.ZipFile(zip_path, "r") as z:
-			for info in z.infolist():
-				if info.filename.endswith("/"):
-					continue
-
-				path = PurePosixPath(info.filename)
-				parts = path.parts
-
-				node = tree
-				for part in parts[:-1]:
-					node = node.setdefault(part, {})
-
-				node[parts[-1]] = info.file_size
-
-		return tree
-
-	# Yes, recursion, BUT:
-	# No FUCKING WAY there'd be an archive 1000 folders deep...
-	@classmethod
-	def render_tree(cls, node, prefix=''):
-		lines = []
-
-		items = sorted(node.items(), key=lambda item: (isinstance(item[1], dict), item[0].lower()))
-
-		for i, (name, value) in enumerate(items):
-			last = i == len(items) - 1
-			branch = '└── ' if last else '├── '
-			next_prefix = prefix + ('    ' if last else '│   ')
-
-			if isinstance(value, dict):
-				lines.append(f'{prefix}{branch}{name}/')
-				lines.extend(cls.render_tree(value, next_prefix))
-			else:
-				name = name.ljust(40)
-				size_num, size_text = sizeof_fmt(value)
-				# lines.append(f"{prefix}{branch}{name} ({value} bytes)")
-				lines.append(f'{prefix}{branch}{name} ({size_num} {size_text})')
-
-
-		return lines
-
-	def run(self, htrequest, fpath):
-		htrequest.flush_bytes(
-			'\n'.join(
-				self.render_tree(
-					self.build_zip_tree(fpath)
-				)
-			).encode(),
-			'text/plain; charset=utf-8',
-		)
-
-
-
 class PreviewArchive:
 	EXT = (
 		'.zip',
@@ -512,8 +444,6 @@ class PreviewArchive:
 				b'%archive_xml%',
 				str(ArchiveHTML(fpath)).encode()
 			),
-			# 'text/plain; charset=utf-8',
-			# 'application/xml; charset=utf-8',
 			'text/html',
 		)
 
@@ -542,7 +472,6 @@ class EZSMain:
 		PreviewAudioVideo,
 		PreviewImage,
 		PreviewGTZIP,
-		# PreviewZIP,
 		PreviewArchive,
 	)
 
@@ -708,15 +637,12 @@ class EZShare:
 		# NAV_IDX[NAV_IDX.index(EZSMain)].ROOT_PATH = self.root_path
 
 	def run(self):
-		# htnav = ShareNav(Path(self.root_path))
-
 		ezs_shared_data = EZSData(
 			root_dir=self.root_path,
 			extra_mimes=self.extra_mimes
 		)
 
 		http_server = htservice.MinHTTP(
-			# htnav.route,
 			htservice.Router(NAV_IDX).nav,
 			tgt_port=self.port,
 			shared_data=ezs_shared_data
@@ -747,12 +673,13 @@ NAV_IDX = (
 
 
 def main():
-	port, root_path = sys.argv[-1].split('=')
+	print('EZShare init')
+	args = argparse.ArgumentParser()
+	args.add_argument('-port')
+	args.add_argument('-root_dir')
+	args = args.parse_args()
 
-	ez_share = EZShare(port, root_path)
-	ez_share.run()
-
-	print('Launched HTTP server...')
+	EZShare(int(args.port), args.root_dir).run()
 
 
 

@@ -253,8 +253,6 @@ class SevenZipFactory:
 class ArchiveExtractor(ArchiveTomfoolery):
 	CHUNK_SIZE = 1024**2
 
-	def __init__(self, fpath):
-		super().__init__(fpath)
 
 	def extract(self, member_path, callback):
 		with self.buf as archive_data:
@@ -274,3 +272,8 @@ class ArchiveExtractor(ArchiveTomfoolery):
 					targets=[member_path],
 					factory=SevenZipFactory(callback)
 				)
+
+
+
+
+
